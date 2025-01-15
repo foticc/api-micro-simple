@@ -1,5 +1,6 @@
 services:
   web:
+    container_name: micro-api
     build: .
     ports:
       - "3000:3000"
