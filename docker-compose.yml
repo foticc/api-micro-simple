@@ -1,5 +1,6 @@
+name: api-micro
 services:
-  web:
+  api:
     container_name: micro-api
     build: .
     ports:
