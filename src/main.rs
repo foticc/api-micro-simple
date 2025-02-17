@@ -4,6 +4,7 @@ mod entity;
 mod api;
 
 use std::env;
+use std::env::VarError;
 use std::fmt::Formatter;
 use std::time::Duration;
 use actix_web::{get, post, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
@@ -13,6 +14,9 @@ use actix_web::http::StatusCode;
 use actix_web::web::Query;
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use actix_web_httpauth::middleware::HttpAuthentication;
+use consulrs::api::check::common::AgentServiceCheckBuilder;
+use consulrs::api::service::requests::RegisterServiceRequest;
+use consulrs::client::{ConsulClient, ConsulClientSettingsBuilder};
 use derive_more::Display;
 use env_logger::Builder;
 use log::{error, info, warn};
@@ -23,6 +27,8 @@ use sea_orm::DbErr;
 use serde_json::Error;
 use crate::common::result::CommonResult;
 use crate::common::security::{Claims, Security};
+
+use consulrs::service as consul_service;
 
 #[derive(Debug, Clone)]
 struct AppState {
@@ -39,6 +45,13 @@ async fn main() -> std::io::Result<()> {
     let port = env::var("PORT").expect("PORT is not set in .env file");
     let _ = env::var("SECRET_KEY").expect("SECRET_KEY is not set in .env file");
     let server_url = format!("{host}:{port}");
+
+    let consul_address = env::var("CONSUL_ADDRESS");
+    if consul_address.is_ok() {
+        let address = consul_address.unwrap();
+        let register_host = env::var("REGISTER_HOST").expect("REGISTER_ADDRESS is not set in .env file");
+        register_consul(address, register_host, port).await.expect("Register consul failed");
+    }
 
     let mut opt = ConnectOptions::new(&db_url);
     opt.max_connections(100)
@@ -76,6 +89,31 @@ async fn main() -> std::io::Result<()> {
 
 fn init_service(cfg: &mut web::ServiceConfig) {
     api::dispatch(cfg);
+}
+
+
+async fn register_consul(register_address: String,
+    host:String,port:String
+)->Result<(),consulrs::error::ClientError>{
+    let settings = ConsulClientSettingsBuilder::default()
+        .address(register_address)
+        .build()
+        .unwrap();
+    // Create a client
+    let client = ConsulClient::new(
+        settings
+    ).unwrap();
+    // register services
+    consul_service::register(
+        &client,
+        "api_micro_simple",
+        Some(
+            RegisterServiceRequest::builder()
+                .address(host)
+                .port(port.parse::<u64>().unwrap())
+        ),
+    ).await?;
+    Ok(())
 }
 
 // 自定义错误处理程序函数

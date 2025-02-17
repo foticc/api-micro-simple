@@ -8,6 +8,16 @@ use log::info;
 use serde::{Deserialize, Serialize};
 use crate::common::simple_cache::Cache;
 
+#[derive(Debug,Deserialize)]
+struct TokenResponse {
+    access_token: String,
+    refresh_token: String,
+    scope: String,
+    id_token: String,
+    token_type: String,
+    expires_in: u32,
+}
+
 pub struct Auth;
 impl Auth {
     pub async fn sign_in(state:Data<AppState>, username:String, password:String) -> Result<String, UserError> {
@@ -51,6 +61,36 @@ impl Auth {
         }else {
             Err(UserError::Error("error".to_string()))
         }
+    }
+
+    pub fn sign_in_2(username:String, password:String) {
+
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use crate::service::auth::TokenResponse;
+
+    #[tokio::test]
+    pub async fn test_sign_in()->Result<(), reqwest::Error> {
+        let client = reqwest::Client::new();
+
+        let response = client
+            .post("http://127.0.0.1:3000/oauth2/token")
+            .basic_auth("client-msg", Some("123456")) // 客户端 ID 和密码
+            .form(&[
+                ("username", "admin"),
+                ("password", "123456"),
+                ("grant_type", "authorization_password"),
+            ])
+            .send()
+            .await?
+            .json::<TokenResponse>().await?;
+
+        println!("Response Status: {:?}", response);
+        Ok(())
     }
 
 }
