@@ -68,7 +68,7 @@ async fn main() -> std::io::Result<()> {
 
     match server {
         Ok(_) => println!("Create Server Successful!"),
-        Err(e) => panic!("Create Server Error!{}",e),
+        Err(error) => panic!("Create Server Error!{}",error),
     }
     server.unwrap().run().await?;
     Ok(())
