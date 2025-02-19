@@ -1,13 +1,13 @@
 use serde::Deserialize;
 
-struct AccessTokenRequest;
+pub struct AccessTokenRequest;
 
 impl AccessTokenRequest {
-    pub async fn request_token(token_endpoint:String,
+    pub async fn request_token(token_endpoint:&str,
                                username:String,
                                password:String,
-                               client_id:String,
-                               client_secret:String,
+                               client_id:&str,
+                               client_secret:&str,
                                 )->Result<TokenResponse, reqwest::Error> {
         let client = reqwest::Client::new();
 
@@ -31,7 +31,7 @@ impl AccessTokenRequest {
 
 #[derive(Debug,Deserialize)]
 pub struct TokenResponse {
-    access_token: String,
+    pub access_token: String,
     refresh_token: String,
     scope: String,
     id_token: String,

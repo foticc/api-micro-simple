@@ -6,6 +6,7 @@ use actix_web::web::Data;
 use jsonwebtoken::{EncodingKey, Header};
 use log::info;
 use serde::{Deserialize, Serialize};
+use crate::common::access_token_request::{AccessTokenRequest, TokenResponse};
 use crate::common::simple_cache::Cache;
 
 pub struct Auth;
@@ -53,8 +54,14 @@ impl Auth {
         }
     }
 
-    pub fn sign_in_2(username:String, password:String) {
-
+    pub async fn sign_in_2(username:String, password:String)->Result<String,UserError> {
+        let result = AccessTokenRequest::request_token("http://127.0.0.1:8000/oauth2/token", username, password,
+                                                       "client-msg", "123456"
+        ).await;
+        match result {
+            Ok(token) => Ok(token.access_token),
+            Err(e) => Err(UserError::Error(format!("{}",e)))
+        }
     }
 }
 

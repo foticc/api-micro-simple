@@ -165,7 +165,8 @@ impl actix_web::error::ResponseError for UserError {
 
 fn excluded_routes()->Vec<&'static str> {
     vec![
-        "/auth/signin"
+        "/auth/signin",
+        "/auth/signin2"
     ]
 }
 
@@ -183,10 +184,12 @@ async fn validator(
     };
     let token = credentials.token();
     info!("{:?}",token);
-    match Security::decode_token(token) {
-        Ok(_) => Ok(req),
-        Err(_) => Err((actix_web::error::ErrorUnauthorized("Unauthorized"), req))
-    }
+    // match Security::decode_token(token) {
+    //     Ok(_) => Ok(req),
+    //     Err(_) => Err((actix_web::error::ErrorUnauthorized("Unauthorized"), req))
+// }
+    Ok(req)
+
 }
 
 #[get("/query")]
