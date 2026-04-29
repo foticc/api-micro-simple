@@ -14,9 +14,6 @@ use actix_web::http::StatusCode;
 use actix_web::web::Query;
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use actix_web_httpauth::middleware::HttpAuthentication;
-use consulrs::api::check::common::AgentServiceCheckBuilder;
-use consulrs::api::service::requests::RegisterServiceRequest;
-use consulrs::client::{ConsulClient, ConsulClientSettingsBuilder};
 use derive_more::Display;
 use env_logger::Builder;
 use log::{error, info, warn};
@@ -28,7 +25,6 @@ use serde_json::Error;
 use crate::common::result::CommonResult;
 use crate::common::security::{Claims, Security};
 
-use consulrs::service as consul_service;
 
 #[derive(Debug, Clone)]
 struct AppState {
@@ -40,18 +36,13 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
 
     dotenvy::dotenv().ok();
-    let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set in .env file");
+    let db_url = env::var("DB_URL").expect("DATABASE_URL is not set in .env file");
     let host = env::var("HOST").expect("HOST is not set in .env file");
     let port = env::var("PORT").expect("PORT is not set in .env file");
     let _ = env::var("SECRET_KEY").expect("SECRET_KEY is not set in .env file");
     let server_url = format!("{host}:{port}");
 
-    let consul_address = env::var("CONSUL_ADDRESS");
-    if consul_address.is_ok() {
-        let address = consul_address.unwrap();
-        let register_host = env::var("REGISTER_HOST").expect("REGISTER_ADDRESS is not set in .env file");
-        register_consul(address, register_host, port).await.expect("Register consul failed");
-    }
+
 
     let mut opt = ConnectOptions::new(&db_url);
     opt.max_connections(100)
@@ -92,30 +83,6 @@ fn init_service(cfg: &mut web::ServiceConfig) {
 }
 
 
-async fn register_consul(register_address: String,
-    host:String,port:String
-)->Result<(),consulrs::error::ClientError>{
-    let settings = ConsulClientSettingsBuilder::default()
-        .address(register_address)
-        .build()
-        .unwrap();
-    // Create a client
-    let client = ConsulClient::new(
-        settings
-    ).unwrap();
-    // register services
-    consul_service::register(
-        &client,
-        "api_micro_simple",
-        Some(
-            RegisterServiceRequest::builder()
-                .address(host)
-                .port(port.parse::<u64>().unwrap())
-        ),
-    ).await?;
-    Ok(())
-}
-
 // 自定义错误处理程序函数
 fn handle_json_error(err: actix_web::error::JsonPayloadError, _req: &HttpRequest)->actix_web::Error {
     // 在这里处理 JSON payload 错误，例如返回适当的错误响应或记录错误日志
@@ -139,11 +106,11 @@ enum UserError {
 
 impl actix_web::error::ResponseError for UserError {
     fn status_code(&self) -> StatusCode {
-        match *self {
+        match self {
             UserError::ValidationError { .. } => StatusCode::BAD_REQUEST,
             UserError::JsonErr(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            _ => {
-                println!("User Error: {}", "????");
+            e => {
+                println!("User Error: {}", e);
                 StatusCode::INTERNAL_SERVER_ERROR
             },
         }

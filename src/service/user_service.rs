@@ -67,7 +67,7 @@ pub struct UserDto {
 #[derive(Debug,Serialize,Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChangePassword {
-    pub id: i32,
+    pub id: String,
     pub new_password: String,
     pub old_password: String,
 }
@@ -236,7 +236,8 @@ impl UserService {
     }
 
     pub async fn change_pwd(state:Data<AppState>, pwd:ChangePassword)->Result<(),UserError> {
-        let option = User::find_by_id(pwd.id)
+        let user_id:i32 = pwd.id.parse().expect("不合法的id");
+        let option = User::find_by_id(user_id)
             .one(&state.conn)
             .await?;
         if option.is_none() {
