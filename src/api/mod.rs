@@ -20,6 +20,7 @@ pub fn dispatch(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/auth")
             .service(auth_api::sign_in)
+            .service(auth_api::sign_in_2)
             .service(auth_api::sign_out)
             .service(auth_api::get_menu_by_user_auth_code)
     );

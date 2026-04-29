@@ -19,6 +19,12 @@ pub async fn sign_in(state:Data<AppState>, Json(data):Json<UserNamePassword>) ->
     Ok(CommonResult::success(token))
 }
 
+#[post("/signin2")]
+pub async fn sign_in_2(_:Data<AppState>, Json(data):Json<UserNamePassword>) ->Result<impl Responder,UserError> {
+    let token = Auth::sign_in_2(data.user_name, data.password).await?;
+    Ok(CommonResult::success(token))
+}
+
 #[post("/signout")]
 pub async fn sign_out(req:HttpRequest) ->Result<impl Responder,UserError> {
     let option = req.headers().get(http::header::AUTHORIZATION);

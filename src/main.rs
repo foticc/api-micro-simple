@@ -4,6 +4,7 @@ mod entity;
 mod api;
 
 use std::env;
+use std::env::VarError;
 use std::fmt::Formatter;
 use std::time::Duration;
 use actix_web::{get, post, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
@@ -24,6 +25,7 @@ use serde_json::Error;
 use crate::common::result::CommonResult;
 use crate::common::security::{Claims, Security};
 
+
 #[derive(Debug, Clone)]
 struct AppState {
     conn: DatabaseConnection,
@@ -34,11 +36,13 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
 
     dotenvy::dotenv().ok();
-    let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set in .env file");
+    let db_url = env::var("DB_URL").expect("DATABASE_URL is not set in .env file");
     let host = env::var("HOST").expect("HOST is not set in .env file");
     let port = env::var("PORT").expect("PORT is not set in .env file");
     let _ = env::var("SECRET_KEY").expect("SECRET_KEY is not set in .env file");
     let server_url = format!("{host}:{port}");
+
+
 
     let mut opt = ConnectOptions::new(&db_url);
     opt.max_connections(100)
@@ -78,6 +82,7 @@ fn init_service(cfg: &mut web::ServiceConfig) {
     api::dispatch(cfg);
 }
 
+
 // 自定义错误处理程序函数
 fn handle_json_error(err: actix_web::error::JsonPayloadError, _req: &HttpRequest)->actix_web::Error {
     // 在这里处理 JSON payload 错误，例如返回适当的错误响应或记录错误日志
@@ -101,11 +106,11 @@ enum UserError {
 
 impl actix_web::error::ResponseError for UserError {
     fn status_code(&self) -> StatusCode {
-        match *self {
+        match self {
             UserError::ValidationError { .. } => StatusCode::BAD_REQUEST,
             UserError::JsonErr(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            _ => {
-                println!("User Error: {}", "????");
+            e => {
+                println!("User Error: {}", e);
                 StatusCode::INTERNAL_SERVER_ERROR
             },
         }
@@ -127,7 +132,8 @@ impl actix_web::error::ResponseError for UserError {
 
 fn excluded_routes()->Vec<&'static str> {
     vec![
-        "/auth/signin"
+        "/auth/signin",
+        "/auth/signin2"
     ]
 }
 
@@ -145,10 +151,12 @@ async fn validator(
     };
     let token = credentials.token();
     info!("{:?}",token);
-    match Security::decode_token(token) {
-        Ok(_) => Ok(req),
-        Err(_) => Err((actix_web::error::ErrorUnauthorized("Unauthorized"), req))
-    }
+    // match Security::decode_token(token) {
+    //     Ok(_) => Ok(req),
+    //     Err(_) => Err((actix_web::error::ErrorUnauthorized("Unauthorized"), req))
+// }
+    Ok(req)
+
 }
 
 #[get("/query")]
