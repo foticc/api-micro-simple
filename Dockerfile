@@ -1,22 +1,30 @@
-FROM clux/muslrust:stable AS chef
-USER root
-RUN cargo install cargo-chef
+# syntax=docker/dockerfile:1
+
+# Actix + SeaORM（PostgreSQL / rustls），release 静态链接到 glibc，运行时用 slim 镜像。
+FROM rust:1-bookworm AS builder
 WORKDIR /app
 
-FROM chef AS planner
-COPY . .
-RUN cargo chef prepare --recipe-path recipe.json
+COPY Cargo.toml Cargo.lock ./
+COPY src ./src
 
-FROM chef AS builder
-COPY --from=planner /app/recipe.json recipe.json
-# 注意我们正在指定 --target 标志！
-RUN cargo chef cook --release --target x86_64-unknown-linux-musl --recipe-path recipe.json
-COPY . .
-RUN cargo build --release --target x86_64-unknown-linux-musl --bin api-micro-simple
+RUN cargo build --locked --release
 
-FROM alpine AS runtime
-RUN addgroup -S myuser && adduser -S myuser -G myuser
-COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/api-micro-simple /usr/local/bin/api-micro-simple
-COPY .env .env
-USER myuser
-CMD ["/usr/local/bin/api-micro-simple"]
+FROM debian:bookworm-slim AS final
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY --from=builder /app/target/release/api-micro-simple /app/api-micro-simple
+
+# 与 docker-compose 端口映射一致；数据库与密钥须通过环境变量或编排注入（勿写入镜像）
+ENV HOST=0.0.0.0 \
+    PORT=3000
+
+USER nobody:nogroup
+
+EXPOSE 3000
+
+CMD ["/app/api-micro-simple"]

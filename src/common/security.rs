@@ -4,8 +4,6 @@ use argon2::password_hash::SaltString;
 use argon2::{PasswordHash, PasswordHasher, PasswordVerifier};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
-use sea_orm::sqlx::Encode;
-use sea_orm::ColIdx;
 use serde::{Deserialize, Serialize};
 use std::io::Error;
 use dotenvy::dotenv;
