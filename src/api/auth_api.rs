@@ -1,5 +1,4 @@
 use actix_web::{http, post, HttpRequest, Responder};
-use actix_web::cookie::time::macros::date;
 use actix_web::web::{Data, Json};
 use serde::{Deserialize, Serialize};
 use crate::{AppState, UserError};

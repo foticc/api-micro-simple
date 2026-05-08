@@ -1,12 +1,9 @@
-use std::io::Error;
-use crate::common::security::{Claims, Security};
+use crate::common::security::{Security};
 use crate::service::user_service::UserService;
 use crate::{AppState, UserError};
 use actix_web::web::Data;
-use jsonwebtoken::{EncodingKey, Header};
 use log::info;
-use serde::{Deserialize, Serialize};
-use crate::common::access_token_request::{AccessTokenRequest, TokenResponse};
+use crate::common::access_token_request::{AccessTokenRequest};
 use crate::common::simple_cache::Cache;
 
 pub struct Auth;

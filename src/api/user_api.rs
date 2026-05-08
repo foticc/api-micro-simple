@@ -36,6 +36,6 @@ pub async fn update(state:Data<AppState>,Json(user):Json<UpdateUser>)->Result<im
 
 #[put("/psd")]
 pub async fn modify_psd(state:Data<AppState>,Json(pwd):Json<ChangePassword>)->Result<impl Responder,UserError> {
-    let _ = UserService::change_pwd(state, pwd).await?;
+    UserService::change_pwd(state, pwd).await?;
     Ok(CommonResult::<String>::success_none())
 }

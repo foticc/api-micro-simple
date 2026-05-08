@@ -32,11 +32,11 @@ impl AccessTokenRequest {
 #[derive(Debug,Deserialize)]
 pub struct TokenResponse {
     pub access_token: String,
-    refresh_token: String,
-    scope: String,
-    id_token: String,
-    token_type: String,
-    expires_in: u32,
+    _refresh_token: String,
+    _scope: String,
+    _id_token: String,
+    _token_type: String,
+    _expires_in: u32,
 }
 
 #[cfg(test)]

@@ -1,14 +1,13 @@
-use actix_web::web::{Data, Json, Path};
-use log::info;
-use sea_orm::{ActiveModelTrait, ColumnTrait, Condition, DbErr, EntityTrait, NotSet, PaginatorTrait, QueryFilter, QueryTrait};
-use sea_orm::ActiveValue::Set;
-use sea_orm::prelude::DateTime;
-use sea_orm::sqlx::types::chrono::{Local, Utc};
-use serde::{Deserialize, Serialize};
-use crate::{AppState, UserError};
-use crate::common::result::{FilterParam, PageResult};
+use crate::common::result::PageResult;
 use crate::entity::department::{ActiveModel, Column, Model};
-use crate::entity::prelude::{Department};
+use crate::entity::prelude::Department;
+use crate::{AppState, UserError};
+use actix_web::web::{Data, Json, Path};
+use sea_orm::prelude::DateTime;
+use sea_orm::sqlx::types::chrono::Local;
+use sea_orm::ActiveValue::Set;
+use sea_orm::{ActiveModelTrait, ColumnTrait, Condition, DbErr, EntityTrait, NotSet, QueryFilter};
+use serde::{Deserialize, Serialize};
 
 pub struct DepartmentService{}
 
@@ -23,6 +22,7 @@ pub struct CreateDepartment {
     pub deleted_at: Option<DateTime>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug,Serialize,Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateDepartment {
@@ -66,7 +66,7 @@ impl DepartmentService {
         Ok(x.rows_affected)
     }
 
-    pub async fn update(state:Data<AppState>, Json(update_params):Json<UpdateDepartment>) ->Result<Model,UserError> {
+    pub async fn _update(state:Data<AppState>, Json(update_params):Json<UpdateDepartment>) ->Result<Model,UserError> {
         let value = serde_json::to_value(&update_params)?;
         let mut result = ActiveModel::from_json(value)?;
         result.created_at = NotSet;
@@ -74,7 +74,7 @@ impl DepartmentService {
         Ok(model)
     }
 
-    pub async fn find_one(state: Data<AppState>, id :Path<i32>) ->Result<Model,UserError> {
+    pub async fn _find_one(state: Data<AppState>, id :Path<i32>) ->Result<Model,UserError> {
         let key = id.into_inner();
         let option = Department::find_by_id(key).one(&state.conn).await?;
         if let Some(s) = option {
@@ -94,6 +94,6 @@ impl DepartmentService {
             .filter(condition)
             .all(&state.conn)
             .await?;
-        Ok(PageResult::new(0, 0, vec.clone(), (&vec).len() as u64))
+        Ok(PageResult::new(0, 0, vec.clone(), vec.len() as u64))
     }
 }

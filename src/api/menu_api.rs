@@ -1,9 +1,8 @@
 use actix_web::{get, post, put, Responder};
-use actix_web::web::{Data, Json, Query,Path};
+use actix_web::web::{Data, Json,Path};
 use log::info;
 use crate::{AppState, UserError};
 use crate::common::result::{CommonResult, FilterParam};
-use crate::entity::prelude::Menu;
 use crate::service::menu_service::{CreateMenu, DelParams, MenuService, SearchParams, UpdateMenu};
 
 #[post("/create")]

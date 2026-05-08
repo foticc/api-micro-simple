@@ -1,13 +1,12 @@
-use std::env;
 use crate::UserError;
 use argon2::password_hash::SaltString;
 use argon2::{PasswordHash, PasswordHasher, PasswordVerifier};
 use chrono::{Duration, Utc};
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
-use serde::{Deserialize, Serialize};
-use std::io::Error;
 use dotenvy::dotenv;
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
+use std::env;
 
 
 static SECRET_KEY:Lazy<String> = Lazy::new(||{

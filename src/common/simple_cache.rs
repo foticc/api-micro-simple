@@ -2,8 +2,7 @@ use std::collections::HashMap;
 use std::sync::RwLock;
 use once_cell::sync::Lazy;
 
-static CACHE:Lazy<Cache> = Lazy::new(||
-    Cache::new()
+static CACHE:Lazy<Cache> = Lazy::new(Cache::new
 );
 
 pub struct Cache {

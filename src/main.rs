@@ -4,8 +4,6 @@ mod entity;
 mod api;
 
 use std::env;
-use std::env::VarError;
-use std::fmt::Formatter;
 use std::time::Duration;
 use actix_web::{get, post, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web::dev::ServiceRequest;
@@ -14,16 +12,12 @@ use actix_web::http::StatusCode;
 use actix_web::web::Query;
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use actix_web_httpauth::middleware::HttpAuthentication;
-use derive_more::Display;
-use env_logger::Builder;
 use log::{error, info, warn};
 use serde::Deserialize;
 use thiserror::Error;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 use sea_orm::DbErr;
-use serde_json::Error;
 use crate::common::result::CommonResult;
-use crate::common::security::{Claims, Security};
 
 
 #[derive(Debug, Clone)]
@@ -31,8 +25,8 @@ struct AppState {
     conn: DatabaseConnection,
 }
 #[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    std::env::set_var("RUST_LOG", "Debug");
+async fn main() -> Result<(),Box<dyn std::error::Error>> {
+    std::env::set_var("RUST_LOG", "DEBUG");
     env_logger::init();
 
     dotenvy::dotenv().ok();
@@ -53,7 +47,7 @@ async fn main() -> std::io::Result<()> {
         .max_lifetime(Duration::from_secs(8))
         // .sqlx_logging(true)
         .sqlx_logging_level(log::LevelFilter::Debug);
-    let db = Database::connect(opt).await.unwrap();
+    let db = Database::connect(opt).await?;
     let state = AppState {conn: db };
 
     let server = HttpServer::new(move|| {
@@ -71,10 +65,10 @@ async fn main() -> std::io::Result<()> {
     }).workers(3).bind(&server_url);
 
     match server {
-        Ok(_) => println!("Create Server Successful!"),
+        Ok(_) => info!("Create Server Successful!"),
         Err(error) => panic!("Create Server Error!{}",error),
     }
-    server.unwrap().run().await?;
+    server?.run().await.expect("Server run failed");
     Ok(())
 }
 
@@ -87,7 +81,7 @@ fn init_service(cfg: &mut web::ServiceConfig) {
 fn handle_json_error(err: actix_web::error::JsonPayloadError, _req: &HttpRequest)->actix_web::Error {
     // 在这里处理 JSON payload 错误，例如返回适当的错误响应或记录错误日志
     let msg = CommonResult::<String>::fail(400, format!("JSON deserialization error: {}", err)).to_string();
-    actix_web::error::InternalError::from_response(err, HttpResponse::BadRequest().body(msg).into()).into()
+    actix_web::error::InternalError::from_response(err, HttpResponse::BadRequest().body(msg)).into()
 }
 
 
@@ -110,7 +104,7 @@ impl actix_web::error::ResponseError for UserError {
             UserError::ValidationError { .. } => StatusCode::BAD_REQUEST,
             UserError::JsonErr(_) => StatusCode::INTERNAL_SERVER_ERROR,
             e => {
-                println!("User Error: {}", e);
+                error!("User Error: {}", e);
                 StatusCode::INTERNAL_SERVER_ERROR
             },
         }
@@ -120,8 +114,7 @@ impl actix_web::error::ResponseError for UserError {
             UserError::ValidationError { field: _ } => self.to_string(),
             UserError::DbErr(e) => e.to_string(),
             UserError::JsonErr(e) => e.to_string(),
-            UserError::Error(e) => e.to_string(),
-            _ => "Unknown Error".to_string(),
+            UserError::Error(e) => e.to_string()
         };
         let res = CommonResult::<String>::fail(400, msg).to_string();
         HttpResponse::build(self.status_code())
@@ -191,7 +184,7 @@ async fn hello() -> impl Responder {
     HttpResponse::Ok().body("Hello world!")
 }
 
-async fn root_handler() -> &'static str {
+async fn _root_handler() -> &'static str {
     warn!("处理根请求");
     "Hello, Axum!"
 }

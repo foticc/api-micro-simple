@@ -1,11 +1,7 @@
 use actix_web::web::Data;
-use argon2::PasswordVerifier;
 use log::info;
-use sea_orm::{ActiveModelTrait, ColumnTrait, Condition, DbErr, EntityTrait, NotSet, PaginatorTrait, QueryFilter, QuerySelect, QueryTrait, SelectColumns, TransactionTrait, TryIntoModel};
-use sea_orm::ActiveValue::{Set, Unchanged};
-use sea_orm::prelude::DateTime;
-use sea_orm::sea_query::UnOper::Not;
-use sea_orm::sqlx::encode::IsNull::No;
+use sea_orm::{ActiveModelTrait, ColumnTrait, Condition, DbErr, EntityTrait, NotSet, PaginatorTrait, QueryFilter, TransactionTrait};
+use sea_orm::ActiveValue::{Set};
 use sea_orm::sqlx::types::chrono::Local;
 use serde::{Deserialize, Serialize};
 use crate::entity::user::{ActiveModel, Column, Model};
@@ -50,6 +46,7 @@ pub struct SearchParams {
     pub department_id:Option<i32>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug,Serialize,Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeleteParam {
@@ -243,7 +240,7 @@ impl UserService {
         if option.is_none() {
            return Err(UserError::DbErr(DbErr::RecordNotFound(pwd.id.to_string())));
         }
-        let mut model = option.unwrap();
+        let model = option.unwrap();
         let verify = Security::verify(&model.password, &pwd.old_password);
         if !verify {
             return Err(UserError::Error("old password is invalid".to_string()));
@@ -268,7 +265,7 @@ impl UserService {
         Ok(())
     }
 
-    pub async fn delete(state:Data<AppState>,ids:DeleteParam)->Result<u64,DbErr> {
+    pub async fn _delete(state:Data<AppState>,ids:DeleteParam)->Result<u64,DbErr> {
         let result = User::delete_many()
             .filter(Column::Id.is_in(ids.ids))
             .exec(&state.conn)

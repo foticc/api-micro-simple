@@ -1,8 +1,8 @@
-use actix_web::{post, Responder};
-use actix_web::web::{Data, Json};
+use crate::common::result::CommonResult;
+use crate::service::department_service::{CreateDepartment, DelParams, DepartmentService, SearchParams};
 use crate::{AppState, UserError};
-use crate::common::result::{CommonResult, FilterParam};
-use crate::service::department_service::{CreateDepartment, DepartmentService, SearchParams,DelParams};
+use actix_web::web::{Data, Json};
+use actix_web::{post, Responder};
 
 #[post("/list")]
 pub async fn list(state:Data<AppState>, list:Json<SearchParams>) ->Result<impl Responder,UserError> {
