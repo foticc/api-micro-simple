@@ -4,6 +4,14 @@
 FROM rust:1-bookworm AS builder
 WORKDIR /app
 
+# 放在最前面，方便更改后仅这一层失效，不影响后续依赖缓存
+RUN mkdir -p $CARGO_HOME && \
+    echo '[source.crates-io]'                     > $CARGO_HOME/config.toml && \
+    echo 'replace-with = "aliyun"'               >> $CARGO_HOME/config.toml && \
+    echo ''                                      >> $CARGO_HOME/config.toml && \
+    echo '[source.aliyun]'                       >> $CARGO_HOME/config.toml && \
+    echo 'registry = "sparse+https://mirrors.aliyun.com/crates.io-index/"' >> $CARGO_HOME/config.toml
+
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
 
