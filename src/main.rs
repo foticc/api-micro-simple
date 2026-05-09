@@ -32,7 +32,7 @@ async fn main() -> Result<(),Box<dyn std::error::Error>> {
         .with_env_filter(
             EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| {
-                    EnvFilter::new("DEBUG")
+                    EnvFilter::new("info")
                 })
         )
         .init();
