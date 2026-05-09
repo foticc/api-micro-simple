@@ -12,11 +12,13 @@ use actix_web::http::StatusCode;
 use actix_web::web::Query;
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use actix_web_httpauth::middleware::HttpAuthentication;
-use log::{error, info, warn};
+use tracing_subscriber::{EnvFilter};
 use serde::Deserialize;
 use thiserror::Error;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 use sea_orm::DbErr;
+use tracing::{error, info, warn};
+use tracing_actix_web::TracingLogger;
 use crate::common::result::CommonResult;
 
 
@@ -26,8 +28,14 @@ struct AppState {
 }
 #[actix_web::main]
 async fn main() -> Result<(),Box<dyn std::error::Error>> {
-    std::env::set_var("RUST_LOG", "DEBUG");
-    env_logger::init();
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| {
+                    EnvFilter::new("DEBUG")
+                })
+        )
+        .init();
 
     dotenvy::dotenv().ok();
     let db_url = env::var("DB_URL").expect("DATABASE_URL is not set in .env file");
@@ -45,8 +53,8 @@ async fn main() -> Result<(),Box<dyn std::error::Error>> {
         .acquire_timeout(Duration::from_secs(8))
         .idle_timeout(Duration::from_secs(8))
         .max_lifetime(Duration::from_secs(8))
-        // .sqlx_logging(true)
-        .sqlx_logging_level(log::LevelFilter::Debug);
+        .sqlx_logging(true)
+        .sqlx_logging_level(tracing::log::LevelFilter::Debug);
     let db = Database::connect(opt).await?;
     let state = AppState {conn: db };
 
@@ -59,6 +67,7 @@ async fn main() -> Result<(),Box<dyn std::error::Error>> {
             .service(query)
             .service(test)
             .wrap(auth)
+            .wrap(TracingLogger::default())
             .route("/hey", web::get().to(manual_hello))
             .app_data(web::JsonConfig::default().limit(1024 * 1024 * 3).error_handler(handle_json_error))
             .configure(init_service)

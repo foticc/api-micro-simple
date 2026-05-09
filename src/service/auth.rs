@@ -2,7 +2,7 @@ use crate::common::security::{Security};
 use crate::service::user_service::UserService;
 use crate::{AppState, UserError};
 use actix_web::web::Data;
-use log::info;
+use tracing::info;
 use crate::common::access_token_request::{AccessTokenRequest};
 use crate::common::simple_cache::Cache;
 

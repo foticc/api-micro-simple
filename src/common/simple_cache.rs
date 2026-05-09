@@ -1,8 +1,7 @@
 use std::collections::HashMap;
-use std::sync::RwLock;
-use once_cell::sync::Lazy;
+use std::sync::{LazyLock, RwLock};
 
-static CACHE:Lazy<Cache> = Lazy::new(Cache::new
+static CACHE:LazyLock<Cache> = LazyLock::new(Cache::new
 );
 
 pub struct Cache {

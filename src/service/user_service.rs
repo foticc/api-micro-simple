@@ -1,5 +1,5 @@
 use actix_web::web::Data;
-use log::info;
+use tracing::info;
 use sea_orm::{ActiveModelTrait, ColumnTrait, Condition, DbErr, EntityTrait, NotSet, PaginatorTrait, QueryFilter, TransactionTrait};
 use sea_orm::ActiveValue::{Set};
 use sea_orm::sqlx::types::chrono::Local;

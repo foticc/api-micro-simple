@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use tracing::info;
 
 pub struct AccessTokenRequest;
 
@@ -23,7 +24,7 @@ impl AccessTokenRequest {
             .await?
             .json::<TokenResponse>().await?;
 
-        log::info!("Response Status: {:?}", response);
+        info!("Response Status: {:?}", response);
         Ok(response)
     }
 

@@ -1,15 +1,14 @@
 use crate::UserError;
 use argon2::password_hash::SaltString;
 use argon2::{PasswordHash, PasswordHasher, PasswordVerifier};
-use chrono::{Duration, Utc};
 use dotenvy::dotenv;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::env;
+use std::sync::LazyLock;
+use time::{Duration, OffsetDateTime};
 
-
-static SECRET_KEY:Lazy<String> = Lazy::new(||{
+static SECRET_KEY:LazyLock<String> = LazyLock::new(||{
     dotenv().ok(); // 加载 .env 文件中的环境变量
     env::var("SECRET_KEY").expect("SECRET_KEY must be set")
 });
@@ -58,13 +57,13 @@ impl Security {
     pub fn encode_token(user_id: i32,user_name:String) -> Result<String,UserError> {
         let secret = Security::get_secret_key();
 
-        let now = Utc::now();
-        let exp = now + Duration::seconds(60 * 5); // 过期时间设为5分钟后
+        let now = OffsetDateTime::now_utc();
+        let exp = now + Duration::minutes(5); // 过期时间设为5分钟后
         let claims = Claims {
             user_name:user_name.clone(),
             roles: "".to_string(),
             sub:user_id.to_string(),
-            exp: exp.timestamp() as usize, // 将过期时间转换为时间戳
+            exp: exp.unix_timestamp() as usize, // 将过期时间转换为时间戳
         };
 
         // 编码生成JWT
