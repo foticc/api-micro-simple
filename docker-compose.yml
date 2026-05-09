@@ -9,9 +9,9 @@
 # https://github.com/docker/awesome-compose
 services:
   server:
-    container_name: api-micro-simple
     env_file:
       - .env
+    image: api-micro-simple:latest
     build:
       context: .
       target: final
