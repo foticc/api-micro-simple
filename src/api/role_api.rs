@@ -6,7 +6,7 @@ use crate::service::role_service::{CreateRoleDto, DelParams, RoleService, Search
 
 #[post("/list")]
 pub async fn list(state:Data<AppState>,Json(page): Json<FilterParam<SearchRoleDto>>)-> Result<impl Responder,UserError>{
-    let vec = RoleService::find_all(state, page).await?;
+    let vec = RoleService::find_page(state, page).await?;
     Ok(CommonResult::success(vec))
 }
 

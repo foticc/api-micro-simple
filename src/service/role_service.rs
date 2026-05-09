@@ -6,7 +6,7 @@ use crate::{AppState, UserError};
 use actix_web::web::Data;
 use sea_orm::sqlx::types::chrono::Local;
 use sea_orm::ActiveValue::Set;
-use sea_orm::{ActiveModelTrait, ColumnTrait, Condition, DbErr, EntityTrait, NotSet, QueryFilter};
+use sea_orm::{ActiveModelTrait, ColumnTrait, Condition, DbErr, EntityTrait, NotSet, PaginatorTrait, QueryFilter};
 use serde::{Deserialize, Serialize};
 
 pub struct RoleService;
@@ -52,7 +52,25 @@ impl RoleService {
         Ok(x)
     }
 
-    pub async fn find_all(state:Data<AppState>, dto: FilterParam<SearchRoleDto>) ->Result<PageResult<Model>,DbErr>{
+    pub async fn find_page(state:Data<AppState>,page:FilterParam<SearchRoleDto>)->Result<PageResult<Model>,DbErr> {
+        let mut condition = Condition::all();
+        if let Some(filter) = page.filters {
+            if let Some(role_name) = filter.role_name {
+                condition= condition.add(Column::RoleName.contains(role_name));
+            }
+        }
+        let paginator = Role::find()
+            .filter(condition)
+            .paginate(&state.conn,page.page_size);
+
+        let total = paginator.num_items().await?;
+        paginator.fetch_page(page.page_index-1)
+            .await.map(|list| {
+            PageResult::new(page.page_index,page.page_size,list,total)
+        })
+    }
+
+    pub async fn _find_all(state:Data<AppState>, dto: FilterParam<SearchRoleDto>) ->Result<PageResult<Model>,DbErr>{
         let mut condition = Condition::all();
         if let Some(filter) = dto.filters {
             if let Some(role_name) = filter.role_name {
