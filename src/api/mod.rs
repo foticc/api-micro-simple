@@ -1,11 +1,11 @@
 use actix_web::web;
 
-mod menu_api;
-mod department_api;
 mod auth_api;
-mod user_api;
-mod role_api;
+mod department_api;
+mod menu_api;
 mod permission_api;
+mod role_api;
+mod user_api;
 
 pub fn dispatch(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -14,7 +14,7 @@ pub fn dispatch(cfg: &mut web::ServiceConfig) {
             .service(menu_api::create)
             .service(menu_api::find_one)
             .service(menu_api::update)
-            .service(menu_api::delete)
+            .service(menu_api::delete),
     );
 
     cfg.service(
@@ -22,7 +22,7 @@ pub fn dispatch(cfg: &mut web::ServiceConfig) {
             .service(auth_api::sign_in)
             .service(auth_api::sign_in_2)
             .service(auth_api::sign_out)
-            .service(auth_api::get_menu_by_user_auth_code)
+            .service(auth_api::get_menu_by_user_auth_code),
     );
 
     cfg.service(
@@ -32,15 +32,14 @@ pub fn dispatch(cfg: &mut web::ServiceConfig) {
             .service(user_api::find_one)
             .service(user_api::create)
             .service(user_api::update)
-            .service(user_api::modify_psd)
+            .service(user_api::modify_psd),
     );
-
 
     cfg.service(
         web::scope("/department")
             .service(department_api::list)
             .service(department_api::create)
-            .service(department_api::delete)
+            .service(department_api::delete),
     );
 
     cfg.service(
@@ -49,14 +48,12 @@ pub fn dispatch(cfg: &mut web::ServiceConfig) {
             .service(role_api::create)
             .service(role_api::find_one)
             .service(role_api::update)
-            .service(role_api::delete)
+            .service(role_api::delete),
     );
-
 
     cfg.service(
         web::scope("/permission")
             .service(permission_api::get_menus_permission_by_role_id)
-            .service(permission_api::assign_role_perm_code)
+            .service(permission_api::assign_role_perm_code),
     );
-
 }

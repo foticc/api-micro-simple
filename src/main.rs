@@ -1,39 +1,35 @@
-mod common;
-mod service;
-mod entity;
 mod api;
+mod common;
+mod entity;
+mod service;
 
-use std::env;
-use std::time::Duration;
-use actix_web::{get, post, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
+use crate::common::result::CommonResult;
 use actix_web::dev::ServiceRequest;
 use actix_web::http::header::ContentType;
 use actix_web::http::StatusCode;
 use actix_web::web::Query;
+use actix_web::{get, post, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use actix_web_httpauth::middleware::HttpAuthentication;
-use tracing_subscriber::{EnvFilter};
-use serde::Deserialize;
-use thiserror::Error;
-use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 use sea_orm::DbErr;
+use sea_orm::{ConnectOptions, Database, DatabaseConnection};
+use serde::Deserialize;
+use std::env;
+use std::time::Duration;
+use thiserror::Error;
 use tracing::{error, info, warn};
 use tracing_actix_web::TracingLogger;
-use crate::common::result::CommonResult;
-
+use tracing_subscriber::EnvFilter;
 
 #[derive(Debug, Clone)]
 struct AppState {
     conn: DatabaseConnection,
 }
 #[actix_web::main]
-async fn main() -> Result<(),Box<dyn std::error::Error>> {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt()
         .with_env_filter(
-            EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| {
-                    EnvFilter::new("info")
-                })
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
         )
         .init();
 
@@ -43,8 +39,6 @@ async fn main() -> Result<(),Box<dyn std::error::Error>> {
     let port = env::var("PORT").expect("PORT is not set in .env file");
     let _ = env::var("SECRET_KEY").expect("SECRET_KEY is not set in .env file");
     let server_url = format!("{host}:{port}");
-
-
 
     let mut opt = ConnectOptions::new(&db_url);
     opt.max_connections(100)
@@ -56,9 +50,9 @@ async fn main() -> Result<(),Box<dyn std::error::Error>> {
         .sqlx_logging(true)
         .sqlx_logging_level(tracing::log::LevelFilter::Debug);
     let db = Database::connect(opt).await?;
-    let state = AppState {conn: db };
+    let state = AppState { conn: db };
 
-    let server = HttpServer::new(move|| {
+    let server = HttpServer::new(move || {
         let auth = HttpAuthentication::with_fn(validator);
         App::new()
             .app_data(web::Data::new(state.clone()))
@@ -69,13 +63,19 @@ async fn main() -> Result<(),Box<dyn std::error::Error>> {
             .wrap(auth)
             .wrap(TracingLogger::default())
             .route("/hey", web::get().to(manual_hello))
-            .app_data(web::JsonConfig::default().limit(1024 * 1024 * 3).error_handler(handle_json_error))
+            .app_data(
+                web::JsonConfig::default()
+                    .limit(1024 * 1024 * 3)
+                    .error_handler(handle_json_error),
+            )
             .configure(init_service)
-    }).workers(3).bind(&server_url);
+    })
+    .workers(3)
+    .bind(&server_url);
 
     match server {
         Ok(_) => info!("Create Server Successful!"),
-        Err(error) => panic!("Create Server Error!{}",error),
+        Err(error) => panic!("Create Server Error!{}", error),
     }
     server?.run().await.expect("Server run failed");
     Ok(())
@@ -85,16 +85,18 @@ fn init_service(cfg: &mut web::ServiceConfig) {
     api::dispatch(cfg);
 }
 
-
 // 自定义错误处理程序函数
-fn handle_json_error(err: actix_web::error::JsonPayloadError, _req: &HttpRequest)->actix_web::Error {
+fn handle_json_error(
+    err: actix_web::error::JsonPayloadError,
+    _req: &HttpRequest,
+) -> actix_web::Error {
     // 在这里处理 JSON payload 错误，例如返回适当的错误响应或记录错误日志
-    let msg = CommonResult::<String>::fail(400, format!("JSON deserialization error: {}", err)).to_string();
+    let msg = CommonResult::<String>::fail(400, format!("JSON deserialization error: {}", err))
+        .to_string();
     actix_web::error::InternalError::from_response(err, HttpResponse::BadRequest().body(msg)).into()
 }
 
-
-#[derive(Error,Debug)]
+#[derive(Error, Debug)]
 enum UserError {
     #[error("Validation error on field: {}", field)]
     ValidationError { field: String },
@@ -106,7 +108,6 @@ enum UserError {
     Error(String),
 }
 
-
 impl actix_web::error::ResponseError for UserError {
     fn status_code(&self) -> StatusCode {
         match self {
@@ -115,7 +116,7 @@ impl actix_web::error::ResponseError for UserError {
             e => {
                 error!("User Error: {}", e);
                 StatusCode::INTERNAL_SERVER_ERROR
-            },
+            }
         }
     }
     fn error_response(&self) -> HttpResponse {
@@ -123,7 +124,7 @@ impl actix_web::error::ResponseError for UserError {
             UserError::ValidationError { field: _ } => self.to_string(),
             UserError::DbErr(e) => e.to_string(),
             UserError::JsonErr(e) => e.to_string(),
-            UserError::Error(e) => e.to_string()
+            UserError::Error(e) => e.to_string(),
         };
         let res = CommonResult::<String>::fail(400, msg).to_string();
         HttpResponse::build(self.status_code())
@@ -132,11 +133,8 @@ impl actix_web::error::ResponseError for UserError {
     }
 }
 
-fn excluded_routes()->Vec<&'static str> {
-    vec![
-        "/auth/signin",
-        "/auth/signin2"
-    ]
+fn excluded_routes() -> Vec<&'static str> {
+    vec!["/auth/signin", "/auth/signin2"]
 }
 
 async fn validator(
@@ -152,28 +150,29 @@ async fn validator(
         return Err((actix_web::error::ErrorBadRequest("no bearer header"), req));
     };
     let token = credentials.token();
-    info!("{:?}",token);
+    info!("{:?}", token);
     // match Security::decode_token(token) {
     //     Ok(_) => Ok(req),
     //     Err(_) => Err((actix_web::error::ErrorUnauthorized("Unauthorized"), req))
-// }
+    // }
     Ok(req)
-
 }
 
 #[get("/query")]
-async fn query(query:Query<DemoPage>) -> Result<String,UserError> {
-    info!("{}",query.size);
-    info!("{}",query.page);
+async fn query(query: Query<DemoPage>) -> Result<String, UserError> {
+    info!("{}", query.size);
+    info!("{}", query.page);
     if query.page == 10 {
         error!("page 10");
-        return Err(UserError::ValidationError{field:"page 10".to_string()});
+        return Err(UserError::ValidationError {
+            field: "page 10".to_string(),
+        });
     }
     Ok(String::from("Hello world!"))
 }
 
 #[get("/res")]
-async fn test() -> Result<impl Responder,UserError> {
+async fn test() -> Result<impl Responder, UserError> {
     let string = "123".to_string();
     Ok(CommonResult::success(string))
 }
@@ -200,6 +199,6 @@ async fn _root_handler() -> &'static str {
 
 #[derive(Deserialize)]
 struct DemoPage {
-    page:usize,
-    size:usize
+    page: usize,
+    size: usize,
 }

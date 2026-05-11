@@ -9,9 +9,9 @@ use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, ColumnTrait, Condition, DbErr, EntityTrait, NotSet, QueryFilter};
 use serde::{Deserialize, Serialize};
 
-pub struct DepartmentService{}
+pub struct DepartmentService {}
 
-#[derive(Debug,Serialize,Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateDepartment {
     pub father_id: Option<i32>,
@@ -23,7 +23,7 @@ pub struct CreateDepartment {
 }
 
 #[allow(dead_code)]
-#[derive(Debug,Serialize,Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateDepartment {
     pub id: i32,
@@ -31,19 +31,22 @@ pub struct UpdateDepartment {
     pub create_department: CreateDepartment,
 }
 
-#[derive(Deserialize,Serialize,Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct DelParams {
-    pub ids:Vec<i32>
+    pub ids: Vec<i32>,
 }
 
-#[derive(Deserialize,Serialize,Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchParams {
-    pub department_name:Option<String>,
+    pub department_name: Option<String>,
 }
 
 impl DepartmentService {
-    pub async fn create(state:Data<AppState>, Json(create_params):Json<CreateDepartment>) ->Result<Model,UserError> {
+    pub async fn create(
+        state: Data<AppState>,
+        Json(create_params): Json<CreateDepartment>,
+    ) -> Result<Model, UserError> {
         let active_model = ActiveModel {
             id: NotSet,
             father_id: Set(create_params.father_id),
@@ -58,7 +61,7 @@ impl DepartmentService {
         Ok(result)
     }
 
-    pub async fn delete(state:Data<AppState>, del_params:DelParams) ->Result<u64,UserError> {
+    pub async fn delete(state: Data<AppState>, del_params: DelParams) -> Result<u64, UserError> {
         let x = Department::delete_many()
             .filter(Column::Id.is_in(del_params.ids))
             .exec(&state.conn)
@@ -66,7 +69,10 @@ impl DepartmentService {
         Ok(x.rows_affected)
     }
 
-    pub async fn _update(state:Data<AppState>, Json(update_params):Json<UpdateDepartment>) ->Result<Model,UserError> {
+    pub async fn _update(
+        state: Data<AppState>,
+        Json(update_params): Json<UpdateDepartment>,
+    ) -> Result<Model, UserError> {
         let value = serde_json::to_value(&update_params)?;
         let mut result = ActiveModel::from_json(value)?;
         result.created_at = NotSet;
@@ -74,17 +80,20 @@ impl DepartmentService {
         Ok(model)
     }
 
-    pub async fn _find_one(state: Data<AppState>, id :Path<i32>) ->Result<Model,UserError> {
+    pub async fn _find_one(state: Data<AppState>, id: Path<i32>) -> Result<Model, UserError> {
         let key = id.into_inner();
         let option = Department::find_by_id(key).one(&state.conn).await?;
         if let Some(s) = option {
             Ok(s)
-        }else {
+        } else {
             Err(UserError::from(DbErr::RecordNotFound(key.to_string())))
         }
     }
 
-    pub async fn find_all(state:Data<AppState>, Json(list):Json<SearchParams>) -> Result<PageResult<Model>, DbErr> {
+    pub async fn find_all(
+        state: Data<AppState>,
+        Json(list): Json<SearchParams>,
+    ) -> Result<PageResult<Model>, DbErr> {
         let mut condition = Condition::all();
         if let Some(department_name) = list.department_name {
             condition = condition.add(Column::DepartmentName.contains(department_name));

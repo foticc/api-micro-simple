@@ -1,65 +1,68 @@
-use crate::common::security::{Security};
+use crate::common::access_token_request::AccessTokenRequest;
+use crate::common::security::Security;
+use crate::common::simple_cache::Cache;
 use crate::service::user_service::UserService;
 use crate::{AppState, UserError};
 use actix_web::web::Data;
 use tracing::info;
-use crate::common::access_token_request::{AccessTokenRequest};
-use crate::common::simple_cache::Cache;
 
 pub struct Auth;
 impl Auth {
-    pub async fn sign_in(state:Data<AppState>, username:String, password:String) -> Result<String, UserError> {
+    pub async fn sign_in(
+        state: Data<AppState>,
+        username: String,
+        password: String,
+    ) -> Result<String, UserError> {
         if Cache::get_cache(username.clone()).is_some() {
             let token = Cache::get_cache(username).unwrap();
             return Ok(token);
         }
         info!("Username: {}", username);
         let user = UserService::find_one_by_user_name(state, username.clone()).await?;
-        let verify = Security::verify(
-            user.password.as_str(),
-            password.as_str()
-        );
+        let verify = Security::verify(user.password.as_str(), password.as_str());
         if !verify {
             return Err(UserError::Error("password not match".to_string()));
         }
 
-        match Security::encode_token(user.id,username.clone()) {
+        match Security::encode_token(user.id, username.clone()) {
             Ok(token) => {
-                Cache::set_cache(username.clone(),token.clone());
+                Cache::set_cache(username.clone(), token.clone());
                 Ok(token)
-            },
-            Err(_) => Err(UserError::Error("error encoding token".to_string()))
+            }
+            Err(_) => Err(UserError::Error("error encoding token".to_string())),
         }
-
     }
 
-    pub async fn sign_out(token:String) -> Result<String, UserError> {
-        let t:Vec<&str> = token.split_whitespace().collect();
+    pub async fn sign_out(token: String) -> Result<String, UserError> {
+        let t: Vec<&str> = token.split_whitespace().collect();
         let real = if let Some(s) = t.get(1) {
             s.to_string()
-        }else {
-            return Err(UserError::Error("token is fail".to_string()))
+        } else {
+            return Err(UserError::Error("token is fail".to_string()));
         };
         if real.is_empty() {
             return Err(UserError::Error("token is empty".to_string()));
         }
         let claims = Security::decode_token(real.as_str())?;
-        if let Some(user_name) =  Cache::remove_cache(claims.user_name) {
+        if let Some(user_name) = Cache::remove_cache(claims.user_name) {
             Ok(user_name)
-        }else {
+        } else {
             Err(UserError::Error("error".to_string()))
         }
     }
 
-    pub async fn sign_in_2(username:String, password:String)->Result<String,UserError> {
-        let result = AccessTokenRequest::request_token("http://127.0.0.1:8000/oauth2/token", username, password,
-                                                       "client-msg", "123456"
-        ).await;
+    pub async fn sign_in_2(username: String, password: String) -> Result<String, UserError> {
+        let result = AccessTokenRequest::request_token(
+            "http://127.0.0.1:8000/oauth2/token",
+            username,
+            password,
+            "client-msg",
+            "123456",
+        )
+        .await;
         match result {
             Ok(token) => Ok(token.access_token),
-            Err(e) => Err(UserError::Error(format!("{}",e)))
+            Err(e) => Err(UserError::Error(format!("{}", e))),
         }
     }
 }
-
-

@@ -8,7 +8,7 @@ use std::env;
 use std::sync::LazyLock;
 use time::{Duration, OffsetDateTime};
 
-static SECRET_KEY:LazyLock<String> = LazyLock::new(||{
+static SECRET_KEY: LazyLock<String> = LazyLock::new(|| {
     dotenv().ok(); // 加载 .env 文件中的环境变量
     env::var("SECRET_KEY").expect("SECRET_KEY must be set")
 });
@@ -24,11 +24,10 @@ pub struct Claims {
 pub struct Security;
 
 impl Security {
-
     fn get_secret_key() -> &'static str {
         &SECRET_KEY
     }
-    pub fn verify(hash: &str,password:&str) -> bool {
+    pub fn verify(hash: &str, password: &str) -> bool {
         let hash = PasswordHash::new(hash);
         if hash.is_err() {
             return false;
@@ -40,7 +39,7 @@ impl Security {
         true
     }
 
-    pub fn hash_password(password:&str) -> Result<String,UserError>{
+    pub fn hash_password(password: &str) -> Result<String, UserError> {
         let salt = SaltString::generate(rand::thread_rng());
         let result = argon2::Argon2::default().hash_password(password.as_bytes(), &salt);
         match result {
@@ -48,48 +47,51 @@ impl Security {
                 let string = format!("{}", o);
                 Ok(string)
             }
-            Err(_) => {
-                Err(UserError::Error("hash_password error".to_string()))
-            }
+            Err(_) => Err(UserError::Error("hash_password error".to_string())),
         }
     }
 
-    pub fn encode_token(user_id: i32,user_name:String) -> Result<String,UserError> {
+    pub fn encode_token(user_id: i32, user_name: String) -> Result<String, UserError> {
         let secret = Security::get_secret_key();
 
         let now = OffsetDateTime::now_utc();
         let exp = now + Duration::minutes(5); // 过期时间设为5分钟后
         let claims = Claims {
-            user_name:user_name.clone(),
+            user_name: user_name.clone(),
             roles: "".to_string(),
-            sub:user_id.to_string(),
+            sub: user_id.to_string(),
             exp: exp.unix_timestamp() as usize, // 将过期时间转换为时间戳
         };
 
         // 编码生成JWT
-        let result = encode(&Header::default(),
-                            &claims,
-                            &EncodingKey::from_secret(secret.as_ref()));
+        let result = encode(
+            &Header::default(),
+            &claims,
+            &EncodingKey::from_secret(secret.as_ref()),
+        );
         match result {
             Ok(re) => Ok(re),
-            Err(e) => Err(UserError::Error(e.to_string()))
+            Err(e) => Err(UserError::Error(e.to_string())),
         }
     }
 
-    pub fn decode_token(token: &str)-> Result<Claims,UserError> {
+    pub fn decode_token(token: &str) -> Result<Claims, UserError> {
         let secret = Security::get_secret_key();
 
-        let token_data = decode::<Claims>(token, &DecodingKey::from_secret(secret.as_ref()), &Validation::default());
+        let token_data = decode::<Claims>(
+            token,
+            &DecodingKey::from_secret(secret.as_ref()),
+            &Validation::default(),
+        );
         match token_data {
             Ok(d) => Ok(d.claims),
-            Err(e) => Err(UserError::Error(e.to_string()))
+            Err(e) => Err(UserError::Error(e.to_string())),
         }
     }
-
 }
 
 #[cfg(test)]
-mod tests{
+mod tests {
     use crate::common::security::Claims;
     use argon2::{PasswordHash, PasswordVerifier};
     use jsonwebtoken::{decode, DecodingKey, Validation};
@@ -102,7 +104,7 @@ mod tests{
 
         let hash = PasswordHash::new(ps).unwrap();
         let result = argon2::Argon2::default().verify_password(success.as_bytes(), &hash);
-        assert_eq!(true,result.is_ok());
+        assert_eq!(true, result.is_ok());
         let result = argon2::Argon2::default().verify_password(error.as_bytes(), &hash);
         assert_eq!(false, result.is_ok());
     }

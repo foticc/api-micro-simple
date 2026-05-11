@@ -10,9 +10,9 @@ use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, ColumnTrait, Condition, DbErr, EntityTrait, NotSet, QueryFilter};
 use serde::{Deserialize, Serialize};
 
-pub struct MenuService{}
+pub struct MenuService {}
 
-#[derive(Deserialize,Serialize,Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateMenu {
     pub father_id: i32,
@@ -28,29 +28,31 @@ pub struct CreateMenu {
     pub visible: Option<bool>,
 }
 
-#[derive(Deserialize,Serialize,Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateMenu {
-    pub id:i64,
+    pub id: i64,
     #[serde(flatten)]
     pub create_menu: CreateMenu,
 }
 
-#[derive(Deserialize,Serialize,Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct DelParams {
-    pub ids:Vec<i32>
+    pub ids: Vec<i32>,
 }
 
-#[derive(Deserialize,Serialize,Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct SearchParams {
-    #[serde(rename(deserialize = "menuName",serialize = "menuName"))]
-    pub menu_name:Option<String>,
-    pub visible:Option<bool>,
+    #[serde(rename(deserialize = "menuName", serialize = "menuName"))]
+    pub menu_name: Option<String>,
+    pub visible: Option<bool>,
 }
 
 impl MenuService {
-
-    pub async fn find_all(state: Data<AppState>, Json(params) :Json<FilterParam<SearchParams>>) -> Result<PageResult<Model>, UserError> {
+    pub async fn find_all(
+        state: Data<AppState>,
+        Json(params): Json<FilterParam<SearchParams>>,
+    ) -> Result<PageResult<Model>, UserError> {
         let mut condition = Condition::all();
         if let Some(filter) = params.filters {
             if let Some(menu_name) = filter.menu_name {
@@ -60,15 +62,14 @@ impl MenuService {
                 condition = condition.add(Column::Visible.eq(visible));
             }
         }
-        let list = Menu::find()
-            .filter(condition)
-            .all(&state.conn)
-            .await?;
+        let list = Menu::find().filter(condition).all(&state.conn).await?;
         Ok(PageResult::new(0, 0, list.clone(), list.len() as u64))
-
     }
 
-    pub async fn create(state: Data<AppState>, create_params : CreateMenu) ->Result<Model, UserError> {
+    pub async fn create(
+        state: Data<AppState>,
+        create_params: CreateMenu,
+    ) -> Result<Model, UserError> {
         let model = ActiveModel {
             id: NotSet,
             father_id: Set(create_params.father_id),
@@ -84,23 +85,26 @@ impl MenuService {
             visible: Set(create_params.visible),
             updated_at: Set(Some(Local::now().naive_local())),
             created_at: Set(Local::now().naive_local()),
-            deleted_at: NotSet
+            deleted_at: NotSet,
         };
         let x = model.insert(&state.conn).await?;
         Ok(x)
     }
 
-    pub async fn find_one(state: Data<AppState>,id :Path<i32>)->Result<Model, DbErr> {
+    pub async fn find_one(state: Data<AppState>, id: Path<i32>) -> Result<Model, DbErr> {
         let key = id.into_inner();
         let x = Menu::find_by_id(key).one(&state.conn).await?;
         if let Some(s) = x {
             Ok(s)
-        }else {
+        } else {
             Err(DbErr::RecordNotFound(key.to_string()))
         }
     }
 
-    pub async fn update(state:Data<AppState>,Json(update_params) : Json<UpdateMenu>)->Result<Model,UserError> {
+    pub async fn update(
+        state: Data<AppState>,
+        Json(update_params): Json<UpdateMenu>,
+    ) -> Result<Model, UserError> {
         let value = serde_json::to_value(&update_params)?;
         let mut result = ActiveModel::from_json(value)?;
         result.created_at = NotSet;
@@ -108,7 +112,7 @@ impl MenuService {
         Ok(model)
     }
 
-    pub async fn delete(state:Data<AppState>,del_params :DelParams)->Result<u64,UserError> {
+    pub async fn delete(state: Data<AppState>, del_params: DelParams) -> Result<u64, UserError> {
         let result = Menu::delete_many()
             .filter(Column::Id.is_in(del_params.ids))
             .exec(&state.conn)
@@ -117,12 +121,14 @@ impl MenuService {
         Ok(result.rows_affected)
     }
 
-    pub async fn get_menu_by_user_auth_code(state:Data<AppState>, auth_code:Vec<String>) ->Result<Vec<Model>,UserError> {
+    pub async fn get_menu_by_user_auth_code(
+        state: Data<AppState>,
+        auth_code: Vec<String>,
+    ) -> Result<Vec<Model>, UserError> {
         let vec = Menu::find()
             .filter(Column::Code.is_in(auth_code))
             .all(&state.conn)
             .await?;
         Ok(vec)
     }
-
 }

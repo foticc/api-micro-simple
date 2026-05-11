@@ -4,12 +4,13 @@ use tracing::info;
 pub struct AccessTokenRequest;
 
 impl AccessTokenRequest {
-    pub async fn request_token(token_endpoint:&str,
-                               username:String,
-                               password:String,
-                               client_id:&str,
-                               client_secret:&str,
-                                )->Result<TokenResponse, reqwest::Error> {
+    pub async fn request_token(
+        token_endpoint: &str,
+        username: String,
+        password: String,
+        client_id: &str,
+        client_secret: &str,
+    ) -> Result<TokenResponse, reqwest::Error> {
         let client = reqwest::Client::new();
 
         let response = client
@@ -22,15 +23,15 @@ impl AccessTokenRequest {
             ])
             .send()
             .await?
-            .json::<TokenResponse>().await?;
+            .json::<TokenResponse>()
+            .await?;
 
         info!("Response Status: {:?}", response);
         Ok(response)
     }
-
 }
 
-#[derive(Debug,Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct TokenResponse {
     pub access_token: String,
     _refresh_token: String,
@@ -45,7 +46,7 @@ mod tests {
     use crate::common::access_token_request::TokenResponse;
 
     #[tokio::test]
-    pub async fn test_sign_in()->Result<(), reqwest::Error> {
+    pub async fn test_sign_in() -> Result<(), reqwest::Error> {
         let client = reqwest::Client::new();
 
         let response = client
@@ -58,10 +59,10 @@ mod tests {
             ])
             .send()
             .await?
-            .json::<TokenResponse>().await?;
+            .json::<TokenResponse>()
+            .await?;
 
         println!("Response Status: {:?}", response);
         Ok(())
     }
-
 }

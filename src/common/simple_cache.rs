@@ -1,24 +1,22 @@
 use std::collections::HashMap;
 use std::sync::{LazyLock, RwLock};
 
-static CACHE:LazyLock<Cache> = LazyLock::new(Cache::new
-);
+static CACHE: LazyLock<Cache> = LazyLock::new(Cache::new);
 
 pub struct Cache {
     data: RwLock<HashMap<String, String>>,
 }
 
 impl Cache {
-
-    pub fn set_cache(key:String, value:String) {
-        CACHE.set(key,value)
+    pub fn set_cache(key: String, value: String) {
+        CACHE.set(key, value)
     }
 
-    pub fn get_cache(key:String)->Option<String> {
+    pub fn get_cache(key: String) -> Option<String> {
         CACHE.get(key.as_str())
     }
 
-    pub fn remove_cache(key:String)->Option<String> {
+    pub fn remove_cache(key: String) -> Option<String> {
         CACHE.remove(key.as_str())
     }
 
