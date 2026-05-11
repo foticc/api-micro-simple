@@ -6,7 +6,7 @@ use crate::{AppState, UserError};
 use actix_web::web::Data;
 use sea_orm::sqlx::types::chrono::Local;
 use sea_orm::ActiveValue::Set;
-use sea_orm::{ActiveModelTrait, ColumnTrait, Condition, DbErr, EntityTrait, NotSet, PaginatorTrait, QueryFilter};
+use sea_orm::{ActiveModelTrait, ColumnTrait, Condition, DbErr, EntityTrait, NotSet, PaginatorTrait, QueryFilter, QueryOrder};
 use serde::{Deserialize, Serialize};
 
 pub struct RoleService;
@@ -61,13 +61,12 @@ impl RoleService {
         }
         let paginator = Role::find()
             .filter(condition)
+            .order_by_asc(Column::Id)
             .paginate(&state.conn,page.page_size);
 
         let total = paginator.num_items().await?;
-        paginator.fetch_page(page.page_index-1)
-            .await.map(|list| {
-            PageResult::new(page.page_index,page.page_size,list,total)
-        })
+        let list = paginator.fetch_page(page.page_index - 1).await?;
+        Ok(PageResult::new(page.page_index, page.page_size, list, total))
     }
 
     pub async fn _find_all(state:Data<AppState>, dto: FilterParam<SearchRoleDto>) ->Result<PageResult<Model>,DbErr>{
@@ -88,14 +87,10 @@ impl RoleService {
     
 
     pub async fn find_one(state:Data<AppState>, id:i32) ->Result<Model,DbErr> {
-        let option = Role::find_by_id(id)
+            Role::find_by_id(id)
             .one(&state.conn)
-            .await?;
-        if let Some(s) = option {
-            Ok(s)
-        }else {
-            Err(DbErr::RecordNotFound(id.to_string()))
-        }
+            .await?
+            .ok_or_else(|| DbErr::RecordNotFound(format!("Role {} not found", id)))
     }
 
     pub async fn update(state:Data<AppState>,update_params: UpdateRole)->Result<Model,UserError> {
@@ -107,8 +102,8 @@ impl RoleService {
             created_at: NotSet,
             deleted_at: NotSet,
         };
-        let result = model.update(&state.conn).await?;
-        Ok(result)
+        model.update(&state.conn).await
+            .map_err(|e|UserError::DbErr(DbErr::RecordNotUpdated))
     }
 
     pub async fn delete(state:Data<AppState>,del_params :DelParams)->Result<u64,UserError> {
