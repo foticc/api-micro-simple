@@ -7,12 +7,12 @@ use crate::{AppState, UserError};
 use actix_web::web::{Data, Json, Path};
 use sea_orm::sqlx::types::chrono::Local;
 use sea_orm::ActiveValue::Set;
-use sea_orm::{ActiveModelTrait, ColumnTrait, Condition, DbErr, EntityTrait, NotSet, QueryFilter};
+use sea_orm::{ActiveModelTrait, ColumnTrait, Condition, DbErr, DeriveIntoActiveModel, EntityTrait, IntoActiveModel, NotSet, QueryFilter};
 use serde::{Deserialize, Serialize};
 
 pub struct MenuService {}
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug,DeriveIntoActiveModel)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateMenu {
     pub father_id: i32,
@@ -31,9 +31,18 @@ pub struct CreateMenu {
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateMenu {
-    pub id: i64,
+    pub id: i32,
     #[serde(flatten)]
     pub create_menu: CreateMenu,
+}
+
+impl From<UpdateMenu> for ActiveModel {
+    fn from(value: UpdateMenu) -> Self {
+        ActiveModel {
+            id:Set(value.id),
+            ..value.create_menu.into_active_model()
+        }
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -105,10 +114,8 @@ impl MenuService {
         state: Data<AppState>,
         Json(update_params): Json<UpdateMenu>,
     ) -> Result<Model, UserError> {
-        let value = serde_json::to_value(&update_params)?;
-        let mut result = ActiveModel::from_json(value)?;
-        result.created_at = NotSet;
-        let model = result.update(&state.conn).await?;
+        let x: ActiveModel = update_params.into();
+        let model = x.update(&state.conn).await?;
         Ok(model)
     }
 

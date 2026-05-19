@@ -202,3 +202,49 @@ struct DemoPage {
     page: usize,
     size: usize,
 }
+
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+    use sea_orm::{ConnectOptions, Database, EntityTrait};
+    use crate::entity::menu;
+    use crate::entity::prelude::Menu;
+
+    #[tokio::test]
+    async fn test()->Result<(), Box<dyn std::error::Error>> {
+        let mut opt = ConnectOptions::new("postgres://admin:123456@192.168.160.137:5432/ng-antd-admin-db?schema=public");
+        opt.max_connections(100)
+            .min_connections(5)
+            .connect_timeout(Duration::from_secs(8))
+            .acquire_timeout(Duration::from_secs(8))
+            .idle_timeout(Duration::from_secs(8))
+            .max_lifetime(Duration::from_secs(8))
+            .sqlx_logging(true)
+            .sqlx_logging_level(tracing::log::LevelFilter::Debug);
+        let db = Database::connect(opt).await?;
+
+        let mut opt_mysql = ConnectOptions::new("mysql://admin:authadmin@121.41.65.116:3306/auth-admin");
+        opt_mysql.max_connections(100)
+            .min_connections(5)
+            .connect_timeout(Duration::from_secs(8))
+            .acquire_timeout(Duration::from_secs(8))
+            .idle_timeout(Duration::from_secs(8))
+            .max_lifetime(Duration::from_secs(8))
+            .sqlx_logging(true)
+            .sqlx_logging_level(tracing::log::LevelFilter::Debug);
+
+        let db_mysql = Database::connect(opt_mysql).await?;
+
+        let vec = Menu::find().all(&db).await?;
+
+        let active_models:Vec<menu::ActiveModel>  = vec.into_iter().map(|item| {
+            item.into()
+        }).collect();
+
+        let _result = Menu::insert_many(active_models).exec(&db_mysql).await?;
+
+
+        Ok(())
+    }
+}

@@ -16,7 +16,7 @@ pub struct RoleService;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct CreateRoleDto {
+pub struct RoleDto {
     pub role_name: String,
     pub role_desc: String,
 }
@@ -38,11 +38,11 @@ pub struct DelParams {
 pub struct UpdateRole {
     pub id: i32,
     #[serde(flatten)]
-    pub create_role_dto: CreateRoleDto,
+    pub role_dto: RoleDto,
 }
 
 impl RoleService {
-    pub async fn create(state: Data<AppState>, dto: CreateRoleDto) -> Result<Model, UserError> {
+    pub async fn create(state: Data<AppState>, dto: RoleDto) -> Result<Model, UserError> {
         let model = ActiveModel {
             id: NotSet,
             role_name: Set(dto.role_name),
@@ -80,7 +80,7 @@ impl RoleService {
         ))
     }
 
-    pub async fn _find_all(
+    pub async fn find_all(
         state: Data<AppState>,
         dto: FilterParam<SearchRoleDto>,
     ) -> Result<Vec<Model>, DbErr> {
@@ -106,8 +106,8 @@ impl RoleService {
     ) -> Result<Model, UserError> {
         let model = ActiveModel {
             id: Set(update_params.id),
-            role_name: Set(update_params.create_role_dto.role_name),
-            role_desc: Set(Some(update_params.create_role_dto.role_desc)),
+            role_name: Set(update_params.role_dto.role_name),
+            role_desc: Set(Some(update_params.role_dto.role_desc)),
             updated_at: Set(Some(Local::now().naive_local())),
             created_at: NotSet,
             deleted_at: NotSet,
@@ -115,7 +115,7 @@ impl RoleService {
         model
             .update(&state.conn)
             .await
-            .map_err(|e| UserError::DbErr(DbErr::RecordNotUpdated))
+            .map_err(UserError::DbErr)
     }
 
     pub async fn delete(state: Data<AppState>, del_params: DelParams) -> Result<u64, UserError> {

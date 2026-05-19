@@ -41,27 +41,25 @@ where
     T: Serialize,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", serde_json::to_string(self).unwrap())
+        write!(f, "{}", serde_json::to_string(self).unwrap_or_else(|e|format!("<serialization error: {}>",e)))
     }
 }
 
 #[derive(Serialize, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FilterParam<T> {
-    #[serde(rename(deserialize = "pageIndex", serialize = "pageIndex"))]
     pub page_index: u64,
-    #[serde(rename(deserialize = "pageSize", serialize = "pageSize"))]
     pub page_size: u64,
     pub filters: Option<T>,
 }
 
 #[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct PageResult<T>
 where
     T: Serialize,
 {
-    #[serde(rename(serialize = "pageIndex"))]
     pub page_index: u64,
-    #[serde(rename(serialize = "pageSize"))]
     pub page_size: u64,
     pub list: Vec<T>,
     pub total: u64,

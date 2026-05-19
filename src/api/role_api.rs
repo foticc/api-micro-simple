@@ -1,13 +1,13 @@
 use crate::common::result::{CommonResult, FilterParam};
 use crate::service::role_service::{
-    CreateRoleDto, DelParams, RoleService, SearchRoleDto, UpdateRole,
+    RoleDto, DelParams, RoleService, SearchRoleDto, UpdateRole,
 };
 use crate::{AppState, UserError};
 use actix_web::web::{Data, Json, Path};
 use actix_web::{get, post, put, Responder};
 
-#[post("/list")]
-pub async fn list(
+#[post("/page")]
+pub async fn page(
     state: Data<AppState>,
     Json(page): Json<FilterParam<SearchRoleDto>>,
 ) -> Result<impl Responder, UserError> {
@@ -15,10 +15,19 @@ pub async fn list(
     Ok(CommonResult::success(vec))
 }
 
+#[post("/list")]
+pub async fn list(
+    state: Data<AppState>,
+    Json(filter): Json<FilterParam<SearchRoleDto>>,
+) -> Result<impl Responder, UserError> {
+    let vec = RoleService::find_all(state,filter).await?;
+    Ok(CommonResult::success(vec))
+}
+
 #[post("/create")]
 pub async fn create(
     state: Data<AppState>,
-    Json(create): Json<CreateRoleDto>,
+    Json(create): Json<RoleDto>,
 ) -> Result<impl Responder, UserError> {
     let vec = RoleService::create(state, create).await?;
     Ok(CommonResult::success(vec))

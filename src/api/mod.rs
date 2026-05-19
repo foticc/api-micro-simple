@@ -45,6 +45,7 @@ pub fn dispatch(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/role")
             .service(role_api::list)
+            .service(role_api::page)
             .service(role_api::create)
             .service(role_api::find_one)
             .service(role_api::update)
